@@ -1,3 +1,9 @@
+DROP DATABASE IF EXISTS tournament;
+-- create database
+CREATE DATABASE tournament;
+-- connect to the database
+\c tournament
+
 DROP VIEW IF EXISTS playerdetails;
 DROP TABLE IF EXISTS matches;
 DROP TABLE IF EXISTS players;
