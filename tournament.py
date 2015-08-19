@@ -7,34 +7,61 @@ import psycopg2
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    con = psycopg2.connect("dbname=tournament")
-    cur = con.cursor()
-    return (con, cur)
+    try:
+        con = psycopg2.connect("dbname=tournament")
+        cur = con.cursor()
+        return (con, cur)
+    except:
+        print 'Unable to connect to database tournament'
+        return (None, None)
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
     con, cur = connect()
-    cur.execute('DELETE FROM matches where Id <> 0')
-    con.commit()
-    #con.close()
+    if con is None or cur is None:
+        return
+    try:
+        cur.execute('DELETE FROM matches where Id <> 0')
+        con.commit()
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    con, cur = connect()
-    cur.execute('DELETE FROM players where Id <> 0')
-    con.commit()
+    con, cur = connect
+    if con is None or cur is None:
+        return None
+    try:
+        cur.execute('DELETE FROM players where Id <> 0')
+        con.commit()
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    con, cur = connect()
-    cur.execute('SELECT count(*) FROM players')
-    row = cur.fetchone()
-    if row is None:
-        return 0
-    else:
-        return row[0]
+    con, cur = connect
+    if con is None or cur is None:
+        return None
+    try:
+        cur.execute('SELECT count(*) FROM players')
+        row = cur.fetchone()
+        if row is None:
+            return 0
+        else:
+            return row[0]
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 
 def registerPlayer(name):
@@ -48,11 +75,19 @@ def registerPlayer(name):
     """
     lastrowid = 0
     con, cur= connect()
-    insStmt = 'INSERT INTO players(name) VALUES(%s);'
-    cur.execute(insStmt, (name, ))
-    con.commit()
-    lastrowid = cur.lastrowid
-    return lastrowid
+    if con is None or cur is None:
+        return None
+    try:
+        insStmt = 'INSERT INTO players(name) VALUES(%s);'
+        cur.execute(insStmt, (name, ))
+        con.commit()
+        lastrowid = cur.lastrowid
+        return lastrowid
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 
 def playerStandings():
@@ -69,14 +104,22 @@ def playerStandings():
         matches: the number of matches the player has played
     """
     con, cur = connect()
+    if con is None or curis None:
+        return None
     query = 'select p.id, p.name, COALESCE(sum(pd.score)/4,0) as wins, count(pd.*) as total from \
              players p left outer join playerdetails pd on (p.id = pd.id) group by p.id order by wins desc;'
-    cur.execute(query)
-    rows = cur.fetchall()
-    if rows is None:
-        return 0
-    else:
-        return rows
+    try:
+        cur.execute(query)
+        rows = cur.fetchall()
+        if rows is None:
+            return 0
+        else:
+            return rows
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 
 def reportMatch(winner, loser):
@@ -87,10 +130,18 @@ def reportMatch(winner, loser):
       loser:  the id number of the player who lost
     """
     con, cur = connect()
-    insStmt = 'INSERT INTO matches(Player1, Score1, Player2, Score2) VALUES(%s,%s,%s,%s);'
-    cur.execute(insStmt, (winner, 4, loser, 0))
-    con.commit()
-    return cur.lastrowid
+    if con is None or cur is None:
+        return None
+    try:
+        insStmt = 'INSERT INTO matches(Player1, Score1, Player2, Score2) VALUES(%s,%s,%s,%s);'
+        cur.execute(insStmt, (winner, 4, loser, 0))
+        con.commit()
+        return cur.lastrowid
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
 
 def swissPairings():
@@ -110,15 +161,23 @@ def swissPairings():
     """
     _records = {}
     con, cur = connect()
+    if con is None or cur is None:
+        return None
     query = 'select player1, player2 from matches'
-    cur.execute(query)
-    for row in cur.fetchall():
-        if row[0] not in _records:
-            _records[row[0]] = set()
-        if row[1] not in _records:
-            _records[row[1]] = set()
-        _records[row[0]].add(row[1])
-        _records[row[1]].add(row[0])
+    try:
+        cur.execute(query)
+        for row in cur.fetchall():
+            if row[0] not in _records:
+                _records[row[0]] = set()
+            if row[1] not in _records:
+                _records[row[1]] = set()
+            _records[row[0]].add(row[1])
+            _records[row[1]].add(row[0])
+    except:
+        return None
+    finally:
+        cur.close()
+        con.close()
 
     pairs = []
     pmem = set()
