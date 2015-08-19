@@ -8,5 +8,5 @@ Dependencies:
 postgre psql version > 9.0
 psycopg2
 
-To run, load tournament.sql into database(\i tournament.sql on psql command prompt) to create tables and import module tournament in your python file or shell.
+To run, load tournament.sql into database(\i tournament.sql on psql command prompt or psql -f tournament.sql directly) to create tables and import module tournament in your python file or shell.
 Follow the documentation in the module to invoke various functions on the database.
