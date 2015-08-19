@@ -4,17 +4,17 @@
 #
 
 import psycopg2
-matchIdNum = 1
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+    con = psycopg2.connect("dbname=tournament")
+    cur = con.cursor()
+    return (con, cur)
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    con = connect()
-    cur = con.cursor()
+    con, cur = connect()
     cur.execute('DELETE FROM matches where Id <> 0')
     con.commit()
     #con.close()
@@ -22,15 +22,13 @@ def deleteMatches():
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    con = connect()
-    cur = con.cursor()
+    con, cur = connect()
     cur.execute('DELETE FROM players where Id <> 0')
     con.commit()
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    con = connect()
-    cur = con.cursor()
+    con, cur = connect()
     cur.execute('SELECT count(*) FROM players')
     row = cur.fetchone()
     if row is None:
@@ -49,8 +47,7 @@ def registerPlayer(name):
       name: the player's full name (need not be unique).
     """
     lastrowid = 0
-    con = connect()
-    cur = con.cursor()
+    con, cur= connect()
     insStmt = 'INSERT INTO players(name) VALUES(%s);'
     cur.execute(insStmt, (name, ))
     con.commit()
@@ -71,11 +68,9 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    con = connect()
-    cur = con.cursor()
-    query = 'select p.Id, p.Name, COALESCE(sum(m.Score)/4, 0) as wins, \
-             COALESCE(count(m.Id),0) as total from players p left outer \
-             join matches m on(p.Id = m.PlayerId) GROUP BY p.Id ORDER BY wins desc'
+    con, cur = connect()
+    query = 'select p.id, p.name, COALESCE(sum(pd.score)/4,0) as wins, count(pd.*) as total from \
+             players p left outer join playerdetails pd on (p.id = pd.id) group by p.id order by wins desc;'
     cur.execute(query)
     rows = cur.fetchall()
     if rows is None:
@@ -91,15 +86,9 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    global matchIdNum
-    con = connect()
-    cur = con.cursor()
-    matchIdNum += 1
-    insStmt = 'INSERT INTO matches(MatchId, PlayerId, Score) VALUES(%s,%s,%s);'
-    cur.execute(insStmt, (matchIdNum, winner, 4, ))
-    con.commit()
-    insStmt = 'INSERT INTO matches(MatchId, PlayerId, Score) VALUES(%s,%s,%s);'
-    cur.execute(insStmt, (matchIdNum, loser, 0, ))
+    con, cur = connect()
+    insStmt = 'INSERT INTO matches(Player1, Score1, Player2, Score2) VALUES(%s,%s,%s,%s);'
+    cur.execute(insStmt, (winner, 4, loser, 0))
     con.commit()
     return cur.lastrowid
 
@@ -119,34 +108,30 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    con = connect()
-    cur = con.cursor()
-    query = 'select p.Id, p.Name, sum(m.Score)/4 as wins, count(m.PlayerId) as total from \
-             matches m join players p on(p.Id = m.PlayerId) GROUP BY p.Id ORDER BY \
-             wins desc'
+    _records = {}
+    con, cur = connect()
+    query = 'select player1, player2 from matches'
     cur.execute(query)
-    rows = cur.fetchall()
-    #Keep record of previous games to avoid re-matches.
-    dupQuery = 'select  m1.PlayerId, array_agg( distinct m2.PlayerId) as opps from \
-                matches m1 join matches m2 on m1.MatchId = m2.MatchId group by m1.PlayerId'
-    cur.execute(dupQuery)
-    duprows = cur.fetchall()
-    dups = {duprow[0]:set(duprow[1]) for duprow in duprows}
-    if rows is None:
-        return None
-    elif len(rows) & 1:
-        print 'Odd number of teams not handled as per specs!'
-        return None
-    else:
-        pairs = []
-        for i in range(0, len(rows)):
-            if [pair for pair in pairs if (pair[0] == rows[i][0]) or (pair[2] == rows[i][0])]:
+    for row in cur.fetchall():
+        if row[0] not in _records:
+            _records[row[0]] = set()
+        if row[1] not in _records:
+            _records[row[1]] = set()
+        _records[row[0]].add(row[1])
+        _records[row[1]].add(row[0])
+
+    pairs = []
+    pmem = set()
+    pstandings = playerStandings()
+    for ith, playerinfo1 in enumerate(pstandings):
+            if playerinfo1[0] in pmem:
                 continue
-            for j in range(i+1, len(rows)):
-                #Only add to pairs is these two havent played before.
-                if (rows[j][0] not in dups.get(rows[i][0], [])) and \
-                    (not [pair for pair in pairs if (pair[0] == rows[j][0]) \
-                    or (pair[2] == rows[j][0])]):
-                    pairs.append((rows[i][0], rows[i][1], rows[j][0], rows[j][1]))
-                    break
-        return pairs
+            for jth, playerinfo2 in enumerate(pstandings[ith+1:]):
+                if playerinfo2[0] in pmem or int(playerinfo2[0]) in _records[playerinfo1[0]]:
+                    continue
+                pairs.append((playerinfo1[0], playerinfo1[1], playerinfo2[0], playerinfo2[1]))
+                pmem.add(playerinfo1[0])
+                pmem.add(playerinfo2[0])
+                break
+
+    return pairs
