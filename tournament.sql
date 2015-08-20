@@ -4,9 +4,6 @@ CREATE DATABASE tournament;
 -- connect to the database
 \c tournament
 
-DROP VIEW IF EXISTS playerdetails;
-DROP TABLE IF EXISTS matches;
-DROP TABLE IF EXISTS players;
 CREATE TABLE players(Id SERIAL PRIMARY KEY, Name TEXT);
 CREATE TABLE matches(Id SERIAL PRIMARY KEY, Player1 INTEGER REFERENCES players(Id), Score1 INTEGER, Player2 INTEGER REFERENCES players(Id), Score2 INTEGER);
 CREATE VIEW playerdetails as
