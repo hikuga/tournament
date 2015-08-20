@@ -20,9 +20,9 @@ def deleteMatches():
     """Remove all the match records from the database."""
     con, cur = connect()
     if con is None or cur is None:
-        return
+        return None
     try:
-        cur.execute('DELETE FROM matches where Id <> 0')
+        cur.execute('TRUNCATE TABLE matches CASCADE;')
         con.commit()
     except:
         return None
@@ -33,11 +33,13 @@ def deleteMatches():
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    con, cur = connect
+    con, cur = connect()
     if con is None or cur is None:
         return None
+    #if deleteMatches() is None:
+        #return None
     try:
-        cur.execute('DELETE FROM players where Id <> 0')
+        cur.execute('TRUNCATE TABLE players CASCADE;')
         con.commit()
     except:
         return None
@@ -47,11 +49,11 @@ def deletePlayers():
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    con, cur = connect
+    con, cur = connect()
     if con is None or cur is None:
         return None
     try:
-        cur.execute('SELECT count(*) FROM players')
+        cur.execute('SELECT count(*) FROM players;')
         row = cur.fetchone()
         if row is None:
             return 0
@@ -66,10 +68,8 @@ def countPlayers():
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
-
     The database assigns a unique serial id number for the player.  (This
     should be handled by your SQL database schema, not in your Python code.)
-
     Args:
       name: the player's full name (need not be unique).
     """
@@ -92,10 +92,8 @@ def registerPlayer(name):
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
-
     The first entry in the list should be the player in first place, or a player
     tied for first place if there is currently a tie.
-
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
         id: the player's unique id (assigned by the database)
@@ -104,7 +102,7 @@ def playerStandings():
         matches: the number of matches the player has played
     """
     con, cur = connect()
-    if con is None or curis None:
+    if con is None or cur is None:
         return None
     query = 'select p.id, p.name, COALESCE(sum(pd.score)/4,0) as wins, count(pd.*) as total from \
              players p left outer join playerdetails pd on (p.id = pd.id) group by p.id order by wins desc;'
@@ -124,7 +122,6 @@ def playerStandings():
 
 def reportMatch(winner, loser):
     """Records the outcome of a single match between two players.
-
     Args:
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
@@ -146,12 +143,10 @@ def reportMatch(winner, loser):
 
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
-
     Assuming that there are an even number of players registered, each player
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-
     Returns:
       A list of tuples, each of which contains (id1, name1, id2, name2)
         id1: the first player's unique id
@@ -159,6 +154,7 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+    #build a lookup to check re-matches
     _records = {}
     con, cur = connect()
     if con is None or cur is None:
