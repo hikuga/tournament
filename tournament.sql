@@ -5,15 +5,7 @@ CREATE DATABASE tournament;
 \c tournament
 
 CREATE TABLE players(Id SERIAL PRIMARY KEY, Name TEXT);
-CREATE TABLE matches(Id SERIAL PRIMARY KEY, Player1 INTEGER REFERENCES players(Id), Score1 INTEGER, Player2 INTEGER REFERENCES players(Id), Score2 INTEGER);
+CREATE TABLE matches(Id SERIAL PRIMARY KEY, Winner INTEGER REFERENCES players(Id), Loser INTEGER REFERENCES players(Id));
 CREATE VIEW playerdetails as
-    SELECT p.id, p.name, m.score1 as score from players p join matches m on (p.id = m.player1)
-    UNION ALL
-    SELECT p.id, p.name, m.score2 as score from players p join matches m on (p.id = m.player2);
-
---INSERT INTO PLAYERS(NAME) VALUES('playea101');
---INSERT INTO PLAYERS(NAME) VALUES('playea102');
---INSERT INTO PLAYERS(NAME) VALUES('playea103');
---INSERT INTO PLAYERS(NAME) VALUES('playea104');
---INSERT INTO MATCHES(player1, score1, player2, score2) VALUES(1,4,2,0);
---INSERT INTO MATCHES(player1, score1, player2, score2) VALUES(3,4,4,0);
+SELECT p.id, p.name, coalesce(count(m1.*),0) as wins, coalesce(count(m2.*),0) as losses from players p left outer join matches m1 on (p.Id = m1.Winner)
+left outer join matches m2 on (p.Id = m2.Loser) GROUP BY p.id ORDER BY wins desc;
