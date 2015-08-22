@@ -20,6 +20,10 @@ def connect():
 def runquery(query, res=False, params=None):
     '''
     Helper function to run a specified query.
+    Args:
+      query(string): query to execute.
+      res(bool):  optional flag to return results.
+      params(tuple): optional params to db query.
     '''
     (executed, results) = (False, None)
     con, cur = connect()
