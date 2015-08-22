@@ -24,6 +24,9 @@ def runquery(query, res=False, params=None):
       query(string): query to execute.
       res(bool):  optional flag to return results.
       params(tuple): optional params to db query.
+    Returns:
+      tuple of bool indicated if query was executed.
+      and list of results.
     '''
     (executed, results) = (False, None)
     con, cur = connect()
