@@ -1,0 +1,21 @@
+<html>
+<body>
+<h1>Ahem this is an Item Catalog!</h1>
+<table border="1">
+{% for indx in range(num) %}
+<tr>
+{% if indx < l0 %}
+<td>{{ data[0][indx][1] }}</td>
+{% else %}
+<td></td>
+{% endif %}
+{% if indx < l1 %}
+<td>{{ data[1][indx][1] }}</td>
+{% else %}
+<td></td>
+{% endif %}
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>
